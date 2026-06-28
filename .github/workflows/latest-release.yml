@@ -1,0 +1,123 @@
+name: Build and publish latest app
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: latest-release
+  cancel-in-progress: true
+
+env:
+  # Update these when Ice's highest supported macOS version changes.
+  SUPPORTED_MACOS_MAJOR: "26"
+  SUPPORTED_MACOS_VERSION: "26.0"
+  APP_VERSION: "26.0.0"
+  APP_BUILD: ${{ github.run_number }}
+
+jobs:
+  latest:
+    name: Build latest app
+    runs-on: macos-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Build Release app
+        env:
+          DERIVED_DATA_PATH: ${{ runner.temp }}/DerivedData
+          SOURCE_PACKAGES_PATH: ${{ runner.temp }}/SourcePackages
+        run: |
+          set -euo pipefail
+
+          xcodebuild \
+            -project Ice.xcodeproj \
+            -scheme Ice \
+            -configuration Release \
+            -derivedDataPath "$DERIVED_DATA_PATH" \
+            -clonedSourcePackagesDirPath "$SOURCE_PACKAGES_PATH" \
+            CODE_SIGN_STYLE=Manual \
+            CODE_SIGN_IDENTITY=- \
+            CODE_SIGNING_ALLOWED=YES \
+            CODE_SIGNING_REQUIRED=YES \
+            DEVELOPMENT_TEAM= \
+            MARKETING_VERSION="$APP_VERSION" \
+            CURRENT_PROJECT_VERSION="$APP_BUILD" \
+            build
+
+          app_path="$DERIVED_DATA_PATH/Build/Products/Release/Ice.app"
+          test -d "$app_path"
+          echo "APP_PATH=$app_path" >> "$GITHUB_ENV"
+
+      - name: Package app
+        run: |
+          set -euo pipefail
+
+          zip_path="${RUNNER_TEMP}/Ice-latest-macos${SUPPORTED_MACOS_MAJOR}.zip"
+          version=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$APP_PATH/Contents/Info.plist")
+          build=$(/usr/libexec/PlistBuddy -c "Print :CFBundleVersion" "$APP_PATH/Contents/Info.plist")
+
+          ditto -c -k --keepParent "$APP_PATH" "$zip_path"
+
+          {
+            echo "ZIP_PATH=$zip_path"
+            echo "APP_VERSION=$version"
+            echo "APP_BUILD=$build"
+          } >> "$GITHUB_ENV"
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Ice-latest-macos${{ env.SUPPORTED_MACOS_MAJOR }}
+          path: ${{ runner.temp }}/Ice-latest-macos${{ env.SUPPORTED_MACOS_MAJOR }}.zip
+          if-no-files-found: error
+
+      - name: Publish latest GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          cat > release-notes.md <<EOF
+          Automated latest build from the main branch.
+
+          Commit: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/commit/${GITHUB_SHA}
+          Highest supported macOS: ${SUPPORTED_MACOS_VERSION}
+          Version: ${APP_VERSION} (${APP_BUILD})
+
+          This build is ad-hoc signed and not notarized. If macOS blocks the app the first time you open it, run:
+
+          \`\`\`sh
+          xattr -dr com.apple.quarantine /Applications/Ice.app
+          open /Applications/Ice.app
+          \`\`\`
+
+          Automatic updates are not available for this fork's GitHub releases yet. Download newer builds from this release page.
+          EOF
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -f latest "$GITHUB_SHA"
+          git push --force origin latest
+
+          if gh release view latest >/dev/null 2>&1; then
+            gh release edit latest \
+              --title "Latest Ice build for macOS ${SUPPORTED_MACOS_MAJOR}" \
+              --notes-file release-notes.md \
+              --latest
+          else
+            gh release create latest \
+              --title "Latest Ice build for macOS ${SUPPORTED_MACOS_MAJOR}" \
+              --notes-file release-notes.md \
+              --latest
+          fi
+
+          gh release upload latest "$ZIP_PATH" --clobber

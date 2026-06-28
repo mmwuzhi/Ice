@@ -17,7 +17,7 @@ struct AboutSettingsPane: View {
 
     private var contributeURL: URL {
         // swiftlint:disable:next force_unwrapping
-        URL(string: "https://github.com/jordanbaird/Ice")!
+        URL(string: "https://github.com/mmwuzhi/Ice")!
     }
 
     private var issuesURL: URL {
@@ -105,39 +105,27 @@ struct AboutSettingsPane: View {
     @ViewBuilder
     private var updatesSection: some View {
         IceSection(options: .hasDividers) {
-            automaticallyCheckForUpdates
-            automaticallyDownloadUpdates
-            if updatesManager.canCheckForUpdates {
-                checkForUpdates
-            }
+            updatesUnavailableMessage
+            checkForUpdates
         }
         .frame(maxWidth: 600)
     }
 
     @ViewBuilder
-    private var automaticallyCheckForUpdates: some View {
-        Toggle(
-            "Automatically check for updates",
-            isOn: $updatesManager.automaticallyChecksForUpdates
-        )
-    }
-
-    @ViewBuilder
-    private var automaticallyDownloadUpdates: some View {
-        Toggle(
-            "Automatically download updates",
-            isOn: $updatesManager.automaticallyDownloadsUpdates
-        )
+    private var updatesUnavailableMessage: some View {
+        Text("Automatic updates are not available for this fork's GitHub releases yet.")
+            .font(.caption)
+            .foregroundStyle(.secondary)
     }
 
     @ViewBuilder
     private var checkForUpdates: some View {
         HStack {
-            Button("Check for Updates") {
+            Button("Open Latest Release") {
                 updatesManager.checkForUpdates()
             }
             Spacer()
-            Text("Last checked: \(lastUpdateCheckString)")
+            Text("Last opened: \(lastUpdateCheckString)")
                 .font(.caption)
         }
     }

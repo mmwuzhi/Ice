@@ -557,7 +557,7 @@ final class ControlItem {
         menu.addItem(.separator())
 
         let checkForUpdatesItem = NSMenuItem(
-            title: "Check for Updates…",
+            title: "Open Latest Release…",
             action: #selector(checkForUpdates),
             keyEquivalent: ""
         )
@@ -599,7 +599,7 @@ final class ControlItem {
         appState?.menuBarManager.searchPanel.show()
     }
 
-    /// Opens the settings window and checks for app updates.
+    /// Opens the latest release page.
     @objc private func checkForUpdates() {
         guard let appState else {
             return

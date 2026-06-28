@@ -7,15 +7,16 @@ Ice is a powerful menu bar management tool. While its primary function is hiding
 
 ![Banner](https://github.com/user-attachments/assets/4423085c-4e4b-4f3d-ad0f-90a217c03470)
 
-[![Download](https://img.shields.io/badge/download-latest-brightgreen?style=flat-square)](https://github.com/jordanbaird/Ice/releases/latest)
+[![Download](https://img.shields.io/badge/download-latest-brightgreen?style=flat-square)](https://github.com/mmwuzhi/Ice/releases/latest)
 ![Platform](https://img.shields.io/badge/platform-macOS-blue?style=flat-square)
-![Requirements](https://img.shields.io/badge/requirements-macOS%2014%2B-fa4e49?style=flat-square)
+![Requirements](https://img.shields.io/badge/requirements-macOS%2014--26-fa4e49?style=flat-square)
+![Supported macOS](https://img.shields.io/badge/highest%20supported-macOS%2026-blueviolet?style=flat-square)
 [![Sponsor](https://img.shields.io/badge/Sponsor%20%E2%9D%A4%EF%B8%8F-8A2BE2?style=flat-square)](https://github.com/sponsors/jordanbaird)
 [![Website](https://img.shields.io/badge/Website-015FBA?style=flat-square)](https://icemenubar.app)
-[![License](https://img.shields.io/github/license/jordanbaird/Ice?style=flat-square)](LICENSE)
+[![License](https://img.shields.io/github/license/mmwuzhi/Ice?style=flat-square)](LICENSE)
 
 > [!NOTE]
-> Ice is currently in active development. Some features have not yet been implemented. Download the latest release [here](https://github.com/jordanbaird/Ice/releases/latest) and see the roadmap below for upcoming features.
+> Ice is currently in active development. Some features have not yet been implemented. Download the latest release [here](https://github.com/mmwuzhi/Ice/releases/latest) and see the roadmap below for upcoming features.
 
 <a href="https://www.buymeacoffee.com/jordanbaird" target="_blank">
     <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;">
@@ -25,11 +26,20 @@ Ice is a powerful menu bar management tool. While its primary function is hiding
 
 ### Manual Installation
 
-Download the "Ice.zip" file from the [latest release](https://github.com/jordanbaird/Ice/releases/latest) and move the unzipped app into your `Applications` folder.
+Download the "Ice-latest-macos26.zip" file from the [latest release](https://github.com/mmwuzhi/Ice/releases/latest) and move the unzipped app into your `Applications` folder.
+
+The GitHub release build is ad-hoc signed and not notarized. If macOS blocks the app the first time you open it, run:
+
+```sh
+xattr -dr com.apple.quarantine /Applications/Ice.app
+open /Applications/Ice.app
+```
+
+Automatic updates are not available for this fork's GitHub releases yet. Download newer builds from the latest release page.
 
 ### Homebrew
 
-Install Ice using the following command:
+The upstream Ice cask can be installed using the following command:
 
 ```sh
 brew install --cask jordanbaird-ice
@@ -78,12 +88,12 @@ brew install --cask jordanbaird-ice
 ### Other
 
 - [x] Launch at login
-- [x] Automatic updates
+- [ ] Automatic updates for this fork's GitHub releases
 - [ ] Menu bar widgets
 
-## Why does Ice only support macOS 14 and later?
+## Why does Ice support macOS 14 through macOS 26?
 
-Ice uses a number of system APIs that are available starting in macOS 14. As such, there are no plans to support earlier versions of macOS.
+Ice uses a number of system APIs that are available starting in macOS 14. This fork currently tracks compatibility through macOS 26.
 
 ## Gallery
 
