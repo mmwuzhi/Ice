@@ -116,12 +116,12 @@ jobs:
 
           if gh release view latest >/dev/null 2>&1; then
             gh release edit latest \
-              --title "Latest Ice build for macOS ${SUPPORTED_MACOS_MAJOR}" \
+              --title "${APP_VERSION}" \
               --notes-file release-notes.md \
               --latest
           else
             gh release create latest \
-              --title "Latest Ice build for macOS ${SUPPORTED_MACOS_MAJOR}" \
+              --title "${APP_VERSION}" \
               --notes-file release-notes.md \
               --latest
           fi
