@@ -52,10 +52,44 @@ final class MenuBarItemManager: ObservableObject {
     private func configureCancellables(with appState: AppState) {
         var c = Set<AnyCancellable>()
 
+        // Refresh when the set of running applications changes, which
+        // catches most cases where a menu bar item is added or removed.
         NSWorkspace.shared.publisher(for: \.runningApplications)
             .delay(for: 0.25, scheduler: DispatchQueue.main)
-            .discardMerge(Timer.publish(every: 5, on: .main, in: .default).autoconnect())
             .debounce(for: 1, scheduler: DispatchQueue.main)
+            .sink { [weak self] _ in
+                guard let self else {
+                    return
+                }
+                Task {
+                    await self.cacheItemsIfNeeded()
+                }
+            }
+            .store(in: &c)
+
+        // A Boolean publisher that is `true` while the user is actively
+        // viewing the Menu Bar Layout pane.
+        let isLayoutPaneActive = Publishers.CombineLatest3(
+            appState.navigationState.$isAppFrontmost,
+            appState.navigationState.$isSettingsPresented,
+            appState.navigationState.$settingsNavigationIdentifier
+        )
+        .map { isFrontmost, isSettingsPresented, identifier in
+            isFrontmost && isSettingsPresented && identifier == .menuBarLayout
+        }
+        .removeDuplicates()
+
+        // Poll for menu bar item changes on a timer. Poll quickly while the
+        // Menu Bar Layout pane is active, so that newly added items appear
+        // promptly, and slowly otherwise to minimize background work.
+        isLayoutPaneActive
+            .map { isActive in
+                let interval: TimeInterval = isActive ? 1 : 5
+                return Timer.publish(every: interval, on: .main, in: .default)
+                    .autoconnect()
+                    .replace(with: ())
+            }
+            .switchToLatest()
             .sink { [weak self] in
                 guard let self else {
                     return
@@ -66,6 +100,8 @@ final class MenuBarItemManager: ObservableObject {
             }
             .store(in: &c)
 
+        // Immediately refresh when the user navigates to the Menu Bar
+        // Layout pane.
         appState.navigationState.$settingsNavigationIdentifier
             .sink { [weak self] identifier in
                 guard let self, identifier == .menuBarLayout else {
