@@ -17,7 +17,7 @@ env:
   # Update these when Ice's highest supported macOS version changes.
   SUPPORTED_MACOS_MAJOR: "26"
   SUPPORTED_MACOS_VERSION: "26.0"
-  APP_VERSION: "26.0.0"
+  APP_VERSION: "26.0.1"
   APP_BUILD: ${{ github.run_number }}
 
 jobs:
@@ -79,6 +79,37 @@ jobs:
             echo "APP_BUILD=$build"
           } >> "$GITHUB_ENV"
 
+      - name: Build drag-to-install DMG
+        run: |
+          set -euo pipefail
+
+          dmg_path="${RUNNER_TEMP}/Ice-latest-macos${SUPPORTED_MACOS_MAJOR}.dmg"
+
+          # dmgbuild writes the .DS_Store directly (no Finder/AppleScript), so the
+          # styled install window — Ice's icon on the left, an arrow, and an
+          # Applications drop-link over a branded background — renders reliably on
+          # headless CI. create-dmg's Finder scripting could not do this on the runner.
+          if pip3 install dmgbuild && dmgbuild \
+            -s Scripts/dmg-settings.py \
+            -D app="$APP_PATH" \
+            -D background="${GITHUB_WORKSPACE}/Scripts/dmg-background.tiff" \
+            "Ice" "$dmg_path"; then
+            echo "dmgbuild succeeded"
+          else
+            # Fall back to a plain compressed DMG that still shows the app next to an
+            # Applications symlink (drag-to-install works, just without the styling).
+            echo "dmgbuild failed; falling back to hdiutil"
+            rm -f "$dmg_path"
+            staging="${RUNNER_TEMP}/dmg-staging"
+            rm -rf "$staging"; mkdir -p "$staging"
+            cp -R "$APP_PATH" "$staging/"
+            ln -s /Applications "$staging/Applications"
+            hdiutil create -volname "Ice" -srcfolder "$staging" -ov -format UDZO "$dmg_path"
+          fi
+
+          test -f "$dmg_path"
+          echo "DMG_PATH=$dmg_path" >> "$GITHUB_ENV"
+
       - name: Upload workflow artifact
         uses: actions/upload-artifact@v4
         with:
@@ -99,12 +130,27 @@ jobs:
           Highest supported macOS: ${SUPPORTED_MACOS_VERSION}
           Version: ${APP_VERSION} (${APP_BUILD})
 
-          This build is ad-hoc signed and not notarized. If macOS blocks the app the first time you open it, run:
+          Download \`Ice-latest-macos${SUPPORTED_MACOS_MAJOR}.dmg\`, open it, and drag Ice onto the Applications folder. (The \`.zip\` is also attached if you prefer.)
+
+          This build is ad-hoc signed and not notarized, so macOS Gatekeeper will block it on first launch. On macOS 15+/26 the Control-click → Open shortcut no longer bypasses this; clear the quarantine flag instead:
 
           \`\`\`sh
           xattr -dr com.apple.quarantine /Applications/Ice.app
           open /Applications/Ice.app
           \`\`\`
+
+          Or, after the first blocked launch, allow it under System Settings → Privacy & Security → "Open Anyway".
+
+          ### Updating to a newer build
+
+          Because these builds are ad-hoc signed, each new version has a different code signature, so macOS may keep showing the old (now stale) entries in Privacy & Security with the toggle still on while the permissions no longer actually work. After replacing the app, reset and re-grant its permissions:
+
+          \`\`\`sh
+          tccutil reset Accessibility com.mmwuzhi.Ice
+          tccutil reset ScreenCapture com.mmwuzhi.Ice
+          \`\`\`
+
+          Then re-enable Ice under System Settings → Privacy & Security → Accessibility and Screen Recording.
 
           Automatic updates are not available for this fork's GitHub releases yet. Download newer builds from this release page.
           EOF
@@ -126,4 +172,4 @@ jobs:
               --latest
           fi
 
-          gh release upload latest "$ZIP_PATH" --clobber
+          gh release upload latest "$ZIP_PATH" "$DMG_PATH" --clobber

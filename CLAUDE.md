@@ -107,7 +107,7 @@ symbols directly inline.
 - Releases are built by `.github/workflows/latest-release.yml` on pushes to `main`.
   The workflow publishes `Ice-latest-macos26.zip` to the moving `latest` GitHub
   Release and overrides the app version to the highest supported macOS version
-  (`26.0.0` currently).
+  (`26.0.1` currently).
 - Automatic updates are disabled for this fork's GitHub releases. The in-app update
   action opens `https://github.com/mmwuzhi/Ice/releases/latest` instead of using an
   appcast.

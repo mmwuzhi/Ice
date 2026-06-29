@@ -104,7 +104,14 @@ extension MenuBarItemService {
                     logger.warning("Session was cancelled with error \(error.localizedDescription)")
                     self.session = nil
                 }
-                session.setPeerRequirement(.isFromSameTeam())
+                // TODO: Restore the same-team peer requirement once releases are
+                // signed with a real Apple team (Developer ID + notarization). It is
+                // disabled now because the release workflow ships ad-hoc builds, which
+                // have no team identifier; with the requirement on, the XPC connection
+                // fails on macOS 26 and menu bar items never load. Re-enable the line
+                // below (and the matching listener in MenuBarItemService/Listener.swift)
+                // when a paid signing identity is available. See docs/release.md.
+                // session.setPeerRequirement(.isFromSameTeam())
                 session.setTargetQueue(queue)
                 try session.activate()
                 self.session = session

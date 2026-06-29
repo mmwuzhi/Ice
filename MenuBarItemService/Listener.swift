@@ -73,11 +73,14 @@ final class Listener {
         Logger.default.debug("Activating listener")
 
         do {
-            if #available(macOS 26.0, *) {
-                try uncheckedActivateWithSameTeamRequirement()
-            } else {
-                try uncheckedActivate()
-            }
+            // TODO: Restore the same-team requirement once releases are signed with a
+            // real Apple team (Developer ID + notarization). It is disabled now because
+            // the release workflow ships ad-hoc builds, which have no team identifier;
+            // with the requirement on, the XPC connection fails on macOS 26 and menu bar
+            // items never load. When a paid signing identity is available, switch back to
+            // the macOS 26.0+ branch calling uncheckedActivateWithSameTeamRequirement()
+            // (and re-enable setPeerRequirement on the client). See docs/release.md.
+            try uncheckedActivate()
         } catch {
             Logger.default.error("Failed to activate listener with error \(error)")
         }
